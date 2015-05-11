@@ -39,7 +39,7 @@ int timeMs=0;
 int team;
 
 int detectEnemy(Mat src);
-
+int connectedComponents(Mat src);
 
 int main()
 {
@@ -111,23 +111,74 @@ int detectEnemy(Mat src)
 		cout<<"Dnemy cannot be detected,because the source pirture is null"<<endl;
 		return -1;
 	}
-	else
+	
+
+ 	//cout<<src.size()<<endl;
+      	Mat srcYCrCb;
+      	Mat srcSigCh;
+      	cvtColor(src,srcYCrCb,CV_BGR2YCrCb);
+     	vector<Mat>srcCh;
+      	split(srcYCrCb,srcCh);      	
+	if(team==RED)
+      	{
+      		srcSigCh=srcCh[1];
+      	}
+      	else if(team==BLUE)
+      	{
+      		srcSigCh=srcCh[2];
+      	}
+      	
+	//imshow("sig",srcSigCh);
+	Mat srcBin;
+	threshold(srcSigCh,srcBin,180,255,THRESH_BINARY);
+	imshow("Bin",srcBin);
+	connectedComponents(srcBin);
+
+      	return 0;
+
+}
+
+int connectedComponents(Mat src)
+{
+	Mat srcMorpho;
+
+	Mat shapeEx=getStructuringElement(0,Size(3,3));
+	morphologyEx(src,srcMorpho,MORPH_OPEN,shapeEx);
+	morphologyEx(srcMorpho,srcMorpho,MORPH_CLOSE,shapeEx);
+	imshow("Morpho",srcMorpho);
+
+	Mat srcCanny;
+	Canny(srcMorpho,srcCanny,50,100,3);
+	vector<vector<Point> >contours;
+	vector<Vec4i> hierarchy;
+	findContours(srcCanny,contours,hierarchy,CV_RETR_EXTERNAL,CV_CHAIN_APPROX_SIMPLE,Point(0,0));
+	
+
+	
+	
+	cout<<"Contours1: "<<contours.size()<<endl;
+	Mat srcContour=Mat::zeros(src.size(),CV_8UC3);
+	float perimscale=64;
+	for(int i=0;i<contours.size();i++)
 	{
-		//cout<<src.size()<<endl;
-		Mat srcYCrCb;
-		Mat srcSigCh;
-		cvtColor(src,srcYCrCb,CV_BGR2YCrCb);
-		vector<Mat>srcCh;
-		split(srcYCrCb,srcCh);
-		if(team==RED)
-		{
-			srcSigCh=srcCh[1];
+		double len=arcLength(contours[i],1);
+		double lenThreshold=(src.size().height+src.size().width)/perimscale;
+		if(len<lenThreshold)
+		{	
+			cout<<">>"<<contours[i].size()<<endl;
+			contours[i].clear();
+			cout<<contours[i].size()<<endl;
 		}
-		else if(team==BLUE)
-		{
-			srcSigCh=srcCh[2];
-		}
-		imshow("sig",srcSigCh);
-		return 0;
+
+		
+
+		//Scalar color=Scalar(255,255,255);
+		//drawContours(srcContour,contours,i,color,2,8,hierarchy,0,Point());
 	}
+	cout<<"Contours2: "<<contours.size()<<endl;
+
+	imshow("contour",srcContour);
+	
+
+	return 0;
 }
