@@ -152,12 +152,14 @@ int connectedComponents(Mat src)
 	vector<vector<Point> >contours;
 	vector<Vec4i> hierarchy;
 	findContours(srcCanny,contours,hierarchy,CV_RETR_EXTERNAL,CV_CHAIN_APPROX_SIMPLE,Point(0,0));
-	
+	vector<vector<Point> >contoursPoly(contours.size());
 
 	
 	
-	cout<<"Contours1: "<<contours.size()<<endl;
+	//cout<<"Contours1: "<<contours.size()<<endl;
 	Mat srcContour=Mat::zeros(src.size(),CV_8UC3);
+	//Mat srcContourFit=Mat::zeros(src,size(),CV_8UC3);
+
 	float perimscale=64;
 	for(int i=0;i<contours.size();i++)
 	{
@@ -165,20 +167,68 @@ int connectedComponents(Mat src)
 		double lenThreshold=(src.size().height+src.size().width)/perimscale;
 		if(len<lenThreshold)
 		{	
-			cout<<">>"<<contours[i].size()<<endl;
-			contours[i].clear();
-			cout<<contours[i].size()<<endl;
+			//cout<<">>"<<contours[i].size()<<endl;
+			contours.erase(contours.begin()+i);
+			cout<<"remove the small contour"<<endl;
+			//contours[i].clear();
+			//cout<<contours[i].size()<<endl;
 		}
+		else//smooth it
+		{
+
+			
+			Scalar color=Scalar(255,0,0);
+			drawContours(srcContour,contours,i,color,2,8,hierarchy,0,Point());
+
+			approxPolyDP(Mat(contours[i]),contours[i],3,true);
+			
+			//color.val[0]=0;color.val[1]=255;color.val[2]=0;
+			drawContours(srcContour,contours,i,Scalar(0,255,0),2,8,hierarchy,0,Point());
+		}
+
+
+	}
+
+	
+	if(contours.size()!=0)
+	{
+		
+		//Calculate the center of mass and the surranding rectangle
+		vector<Moments>mu(contours.size());
+		for(int i=0;i<contours.size();i++)
+		{
+			mu[i]=moments(contours[i],false);
+		}
+
+		vector<Point>mc(contours.size());
+		for(int i=0;i<contours.size();i++)
+		{
+			mc[i]=Point(mu[i].m10/mu[i].m00,mu[i].m01/mu[i].m00);
+			circle(srcContour,mc[i],4,Scalar(0,0,255),-1);
+		}	
+
+		vector<RotatedRect>minRect(contours.size());
+		vector<Rect>boundRect(contours.size());
+		for(int i=0;i<contours.size();i++)
+		{
+			//minRect[i]=minAreaRect(Mat(contours[i]));
+			boundRect[i]=boundingRect(Mat(contours[i]));
+			rectangle(srcContour,boundRect[i].tl(),boundRect[i].br(),Scalar(0,0,255),1);
+		}
+		
+	}
+	else
+	{
+		return -1;
+	}
+			
 
 		
 
-		//Scalar color=Scalar(255,255,255);
-		//drawContours(srcContour,contours,i,color,2,8,hierarchy,0,Point());
-	}
-	cout<<"Contours2: "<<contours.size()<<endl;
+	//cout<<"Contours2: "<<contours.size()<<endl;
 
 	imshow("contour",srcContour);
 	
-
+	
 	return 0;
 }
