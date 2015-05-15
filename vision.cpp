@@ -1,5 +1,6 @@
 #include<iostream>
 #include"opencv2/opencv.hpp"
+#include"vision.h"
 
 using namespace std;
 using namespace cv;
@@ -38,8 +39,9 @@ Mat src,chel;
 int timeMs=0;
 int team;
 
+
 int detectEnemy(Mat src);
-int connectedComponents(Mat src);
+int connectedComponents(Mat src,vector<ConnectObj>cO);
 
 int main()
 {
@@ -132,13 +134,15 @@ int detectEnemy(Mat src)
 	Mat srcBin;
 	threshold(srcSigCh,srcBin,180,255,THRESH_BINARY);
 	imshow("Bin",srcBin);
-	connectedComponents(srcBin);
+
+	vector<ConnectObj> cO;
+	connectedComponents(srcBin,cO);
 
       	return 0;
 
 }
 
-int connectedComponents(Mat src)
+int connectedComponents(Mat src,vector<ConnectObj> cO)
 {
 	Mat srcMorpho;
 
@@ -149,7 +153,7 @@ int connectedComponents(Mat src)
 
 	Mat srcCanny;
 	Canny(srcMorpho,srcCanny,50,100,3);
-	vector<vector<Point> >contours;
+	vector<vector<Point> >contours,contours1;
 	vector<Vec4i> hierarchy;
 	findContours(srcCanny,contours,hierarchy,CV_RETR_EXTERNAL,CV_CHAIN_APPROX_SIMPLE,Point(0,0));
 	vector<vector<Point> >contoursPoly(contours.size());
@@ -161,58 +165,82 @@ int connectedComponents(Mat src)
 	//Mat srcContourFit=Mat::zeros(src,size(),CV_8UC3);
 
 	float perimscale=64;
-	for(int i=0;i<contours.size();i++)
+	
+	//vector<ConnectObj>::iterator iter=cO.begin();
+	//filer the contours and smooth it
+	for(int i=0,j=0;i<contours.size();i++)
 	{
 		double len=arcLength(contours[i],1);
 		double lenThreshold=(src.size().height+src.size().width)/perimscale;
 		if(len<lenThreshold)
 		{	
 			//cout<<">>"<<contours[i].size()<<endl;
-			contours.erase(contours.begin()+i);
-			cout<<"remove the small contour"<<endl;
+			//contours.erase(contours.begin()+i);
+			
+			//cout<<"remove the small contour"<<endl;
 			//contours[i].clear();
 			//cout<<contours[i].size()<<endl;
+			
 		}
 		else//smooth it
 		{
 
-			
 			Scalar color=Scalar(255,0,0);
 			drawContours(srcContour,contours,i,color,2,8,hierarchy,0,Point());
-
-			approxPolyDP(Mat(contours[i]),contours[i],3,true);
 			
+			contours1.resize(contours1.size()+1);
+			//approxPolyDP(Mat(contours[i]),contours[i],3,true);
+			approxPolyDP(Mat(contours[i]),contours1.back(),3,true);
+			//cout<<contours1.size()<<endl;
+
+			ConnectObj c1;
+			vector<Point>::iterator iter2;
+			iter2=contours1.back().begin();
+			for(;iter2!=contours1.back().end();iter2++)
+			{
+				c1.contour.push_back(*iter2);
+			}
+  		        
+			cO.push_back(c1);
 			//color.val[0]=0;color.val[1]=255;color.val[2]=0;
-			drawContours(srcContour,contours,i,Scalar(0,255,0),2,8,hierarchy,0,Point());
+			drawContours(srcContour,contours1,contours1.size()-1,Scalar(0,255,0),2,8,hierarchy,0,Point());
 		}
 
 
 	}
 
 	
-	if(contours.size()!=0)
+	if(contours1.size()!=0)
 	{
+
+			//cout<<"fuck"<<endl;
 		
 		//Calculate the center of mass and the surranding rectangle
-		vector<Moments>mu(contours.size());
-		for(int i=0;i<contours.size();i++)
+		vector<Moments>mu(contours1.size());
+		for(int i=0;i<contours1.size();i++)
 		{
-			mu[i]=moments(contours[i],false);
+			mu[i]=moments(contours1[i],false);
 		}
 
-		vector<Point>mc(contours.size());
-		for(int i=0;i<contours.size();i++)
+		vector<Point>mc(contours1.size());
+		//vector<ConnectObj>::iterator iter;
+		//iter=cO.begin();
+		for(int i=0;i<contours1.size();i++/*,iter++*/)
 		{
 			mc[i]=Point(mu[i].m10/mu[i].m00,mu[i].m01/mu[i].m00);
+			cO[i].center=mc[i];
 			circle(srcContour,mc[i],4,Scalar(0,0,255),-1);
-		}	
 
-		vector<RotatedRect>minRect(contours.size());
-		vector<Rect>boundRect(contours.size());
-		for(int i=0;i<contours.size();i++)
+		}	
+		
+		
+		vector<RotatedRect>minRect(contours1.size());
+		vector<Rect>boundRect(contours1.size());
+		for(int i=0;i<contours1.size();i++)
 		{
 			//minRect[i]=minAreaRect(Mat(contours[i]));
-			boundRect[i]=boundingRect(Mat(contours[i]));
+			boundRect[i]=boundingRect(Mat(contours1[i]));
+			cO[i].bound=boundRect[i];
 			rectangle(srcContour,boundRect[i].tl(),boundRect[i].br(),Scalar(0,0,255),1);
 		}
 		
@@ -226,9 +254,8 @@ int connectedComponents(Mat src)
 		
 
 	//cout<<"Contours2: "<<contours.size()<<endl;
-
-	imshow("contour",srcContour);
 	
+	imshow("contour",srcContour);
 	
 	return 0;
 }
