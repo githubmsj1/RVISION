@@ -41,7 +41,7 @@ int team;
 
 
 int detectEnemy(Mat src);
-int connectedComponents(Mat src,vector<ConnectObj>cO);
+int connectedComponents(Mat src,vector<ConnectObj> &cO);
 
 int main()
 {
@@ -137,12 +137,12 @@ int detectEnemy(Mat src)
 
 	vector<ConnectObj> cO;
 	connectedComponents(srcBin,cO);
-
-      	return 0;
+	cout<<cO.size()<<endl;
+	return 0;
 
 }
 
-int connectedComponents(Mat src,vector<ConnectObj> cO)
+int connectedComponents(Mat src,vector<ConnectObj> &cO)
 {
 	Mat srcMorpho;
 
