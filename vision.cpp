@@ -40,8 +40,9 @@ int timeMs=0;
 int team;
 
 
-int detectEnemy(Mat src);
+int detectEnemy(Mat src,vector<ConnectObj> &cO);
 int connectedComponents(Mat src,vector<ConnectObj> &cO);
+int recognizeEnemy(vector<ConnectObj> cO);
 
 int main()
 {
@@ -84,7 +85,8 @@ int main()
 
 		imshow("Source",src);
 		
-		detectEnemy(src);
+		vector<ConnectObj> cO;
+		detectEnemy(src,cO);
 
 		//control the processing period
 		char waitTime=0;
@@ -106,7 +108,7 @@ int main()
 	return 0;
 }
 
-int detectEnemy(Mat src)
+int detectEnemy(Mat src,vector<ConnectObj> &cO)
 {
 	if(src.empty())
 	{
@@ -135,14 +137,14 @@ int detectEnemy(Mat src)
 	threshold(srcSigCh,srcBin,180,255,THRESH_BINARY);
 	imshow("Bin",srcBin);
 
-	vector<ConnectObj> cO;
+	//vector<ConnectObj> cO;
 	connectedComponents(srcBin,cO);
 
-	if(cO.size()>0)
-	{
-		CObj obj1=CObj(cO[0]);
-		obj1.imshowArea();
-	}
+	//if(cO.size()>0)
+	//{
+	//	CObj obj1=CObj(cO[0]);
+	//	obj1.imshowArea();
+	//}
 
 	return 0;
 
@@ -266,6 +268,12 @@ int connectedComponents(Mat src,vector<ConnectObj> &cO)
 	return 0;
 }
 
+
+int recognizeEnemy(vector<ConnectObj> cO)
+{
+	
+	return 0;
+}
 /******************CLass CObj********************/
 void CObj::imshowArea()
 {
@@ -291,3 +299,4 @@ CObj::CObj(ConnectObj src)
 		area.contour.back()=*iter;
 	}
 }
+

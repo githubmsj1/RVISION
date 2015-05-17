@@ -18,7 +18,12 @@ class CObj
 	public:
 		CObj(ConnectObj Area);
 		void imshowArea();
+		int getAreaAsize();
+		float getWHR();
 	private:
 		ConnectObj area;
+		int areaSize;
+		float WHRatio;
+		
 };
 #endif
