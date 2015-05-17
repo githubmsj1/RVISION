@@ -13,4 +13,12 @@ typedef struct
 	vector<Point>contour;
 }ConnectObj;
 
+class CObj
+{
+	public:
+		CObj(ConnectObj Area);
+		void imshowArea();
+	private:
+		ConnectObj area;
+};
 #endif

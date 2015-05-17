@@ -137,7 +137,13 @@ int detectEnemy(Mat src)
 
 	vector<ConnectObj> cO;
 	connectedComponents(srcBin,cO);
-	cout<<cO.size()<<endl;
+
+	if(cO.size()>0)
+	{
+		CObj obj1=CObj(cO[0]);
+		obj1.imshowArea();
+	}
+
 	return 0;
 
 }
@@ -258,4 +264,30 @@ int connectedComponents(Mat src,vector<ConnectObj> &cO)
 	imshow("contour",srcContour);
 	
 	return 0;
+}
+
+/******************CLass CObj********************/
+void CObj::imshowArea()
+{
+	
+	Mat src=Mat::zeros(320,480,CV_8UC3);
+	vector<vector<Point> >contours;
+	contours.push_back(area.contour);
+	drawContours(src,contours,0,Scalar(0,255,0),2,8);
+	circle(src,area.center,4,Scalar(0,0,255),-1);
+	rectangle(src,area.bound.tl(),area.bound.br(),Scalar(0,0,255),1);
+	imshow("Draw area",src);
+}
+
+CObj::CObj(ConnectObj src)
+{
+	area.center=src.center;
+	area.bound=src.bound;
+
+	
+	for(vector<Point>::iterator iter=src.contour.begin();iter!=src.contour.end();iter++)
+	{	
+		area.contour.resize(area.contour.size()+1);
+		area.contour.back()=*iter;
+	}
 }
