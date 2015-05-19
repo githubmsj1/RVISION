@@ -43,6 +43,8 @@ int team;
 int detectEnemy(Mat src,vector<ConnectObj> &cO);
 int connectedComponents(Mat src,vector<ConnectObj> &cO);
 int recognizeEnemy(vector<ConnectObj> cO);
+int detectFeatures(Mat src,Mat &dst);
+
 
 int main()
 {
@@ -86,7 +88,11 @@ int main()
 		imshow("Source",src);
 		
 		vector<ConnectObj> cO;
-		detectEnemy(src,cO);
+		Mat srcF;
+		//detectEnemy(src,cO);
+		detectFeatures(src,srcF);
+		imshow("feature",srcF);
+		//connectedComponents(srcF,cO);
 
 		//control the processing period
 		char waitTime=0;
@@ -107,6 +113,48 @@ int main()
 	}
 	return 0;
 }
+
+
+int detectFeatures(Mat src,Mat &dst)
+{
+	
+	if(src.empty())
+	{
+		cout<<"Dnemy cannot be detected,because the source pirture is null"<<endl;
+		return -1;
+	}
+	
+ 	//cout<<src.size()<<endl;
+      	Mat srcYCrCb;
+      	Mat srcSigCh;
+      	cvtColor(src,srcYCrCb,CV_BGR2YCrCb);
+     	vector<Mat>srcCh;
+      	split(srcYCrCb,srcCh);      	
+	if(team==RED)
+      	{
+      		srcSigCh=srcCh[1];
+      	}
+      	else if(team==BLUE)
+      	{
+      		srcSigCh=srcCh[2];
+      	}
+      	
+	imshow("sig",srcSigCh);
+	Mat srcBin;
+	threshold(srcSigCh,srcBin,180,255,THRESH_BINARY);
+	//imshow("Bin",srcBin);
+
+	//vector<ConnectObj> cO;
+	dst=srcBin;
+	//if(cO.size()>0)
+	//{
+	//	CObj obj1=CObj(cO[0]);
+	//	obj1.imshowArea();
+	//}
+
+	return 0;
+}
+
 
 int detectEnemy(Mat src,vector<ConnectObj> &cO)
 {

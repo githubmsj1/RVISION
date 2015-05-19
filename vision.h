@@ -13,6 +13,13 @@ typedef struct
 	vector<Point>contour;
 }ConnectObj;
 
+typedef struct
+{
+	float redRatio;
+	float blueRatio;
+	float synthesizeRtio;
+}colorRatio;
+
 class CObj
 {
 	public:
@@ -24,6 +31,10 @@ class CObj
 		ConnectObj area;
 		int areaSize;
 		float WHRatio;
+		float wheelRatio;
+		Mat img;
+		colorRatio cloRatio;
+		float lightBarRatio;
 		
 };
 #endif
