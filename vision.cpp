@@ -33,7 +33,7 @@ using namespace cv;
 
 
 const char* srcPath="6.jpg";
-const char* videoPath="v1.wmv";
+const char* videoPath="p1.avi";
 
 Mat src,chel;	
 int timeMs=0;
