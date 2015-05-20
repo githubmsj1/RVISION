@@ -23,7 +23,7 @@ using namespace cv;
 #if RUN_STATUS==DEBUG
 	#define PAUSE ENABLE
 	#define IMG_SOURCE VIDEO
-	#define TEAM_DEFAULT RED
+	#define TEAM_DEFAULT BLUE
 #else
 	#define PAUSE ENABLE       
 	#define IMG_SOURCE PICTURE
@@ -33,9 +33,10 @@ using namespace cv;
 
 
 const char* srcPath="6.jpg";
-const char* videoPath="p1.avi";
+const char* videoPath="p6.avi";
 
-Mat src,chel;	
+Mat src,chel,tmpImg;
+int tmpVar=0,tmpVar1=0,tmpMin=0,tmpMax=0;
 int timeMs=0;
 int team;
 
@@ -44,7 +45,8 @@ int detectEnemy(Mat src,vector<ConnectObj> &cO);
 int connectedComponents(Mat src,vector<ConnectObj> &cO);
 int recognizeEnemy(vector<ConnectObj> cO);
 int detectFeatures(Mat src,Mat &dst);
-
+int kmeansThresh(Mat src,Mat &dst);
+void regulate(int,void*);
 
 int main()
 {
@@ -72,6 +74,10 @@ int main()
 	}
 
 	namedWindow("Source",0);
+	namedWindow("thresh",CV_WINDOW_AUTOSIZE );
+	createTrackbar( "Thresh1","thresh",&tmpVar, 255,regulate );
+	createTrackbar( "Thresh2","thresh",&tmpVar1, 255,regulate );
+	
 	while(true)
 	{	
 		//aquire the source picture
@@ -115,6 +121,29 @@ int main()
 }
 
 
+void regulate(int,void*)
+{
+	Mat tmpImg1;
+	//threshold(tmpImg,tmpImg1,tmpVar,255,THRESH_BINARY);
+	if(tmpVar>tmpVar1)
+	{
+		tmpMin=tmpVar1;
+		tmpMax=tmpVar;
+	}
+	else
+	{
+		tmpMin=tmpVar;
+		tmpMax=tmpVar1;
+	}
+	cout<<"Small "<<tmpVar<<endl;
+	cout<<"Big "<<tmpVar1<<endl;
+	//vector<int> up,down;
+	//up.push_back(tmpVar1);
+	//down.push_back(tmpVar);
+	inRange(tmpImg,tmpMin,tmpMax,tmpImg1);
+	imshow("thresh",tmpImg1);
+}
+
 int detectFeatures(Mat src,Mat &dst)
 {
 	
@@ -126,22 +155,47 @@ int detectFeatures(Mat src,Mat &dst)
 	
  	//cout<<src.size()<<endl;
       	Mat srcYCrCb;
+	Mat srcHSV;
       	Mat srcSigCh;
+	Mat srcGray;
+
       	cvtColor(src,srcYCrCb,CV_BGR2YCrCb);
+	cvtColor(src,srcHSV,CV_BGR2HSV);
+	cvtColor(src,srcGray, CV_BGR2GRAY);
+
      	vector<Mat>srcCh;
-      	split(srcYCrCb,srcCh);      	
+
+      	//YCrCb
+	split(srcYCrCb,srcCh);      	
 	if(team==RED)
-      	{
-      		srcSigCh=srcCh[1];
-      	}
-      	else if(team==BLUE)
       	{
       		srcSigCh=srcCh[2];
       	}
-      	
-	imshow("sig",srcSigCh);
+      	else if(team==BLUE)
+      	{
+      		srcSigCh=srcCh[1];
+      	}
+
+      	//Gray
+	srcSigCh=srcGray;
+
+	//HSV
+	//split(srcHSV,srcCh);
+	//srcSigCh=srcCh[0];
+	
+	//imshow("sig",srcSigCh);
+	//equalizeHist(srcSigCh,srcSigCh);
+	tmpImg=srcSigCh;
+	
+
+	imshow("sig1",srcSigCh);
 	Mat srcBin;
-	threshold(srcSigCh,srcBin,180,255,THRESH_BINARY);
+	
+	//binary
+	//inRange(srcSigCh,0,81,srcBin);	
+	inRange(srcSigCh,0,50,srcBin);
+
+	//threshold(srcSigCh,srcBin,180,255,THRESH_BINARY);
 	//imshow("Bin",srcBin);
 
 	//vector<ConnectObj> cO;
@@ -155,6 +209,27 @@ int detectFeatures(Mat src,Mat &dst)
 	return 0;
 }
 
+int kmeansThresh(Mat src,Mat &dst)
+{	
+	
+	Mat labels;
+
+	//RNG rng(12345);
+	//int i, sampleCount = rng.uniform(1, 1001);
+	//Mat points(sampleCount, 1, CV_32FC2);
+	//cout<<points.size()<<endl;
+	//kmeans(points, 2,labels,TermCriteria(CV_TERMCRIT_EPS+CV_TERMCRIT_ITER, 10, 1.0),3, KMEANS_PP_CENTERS);
+
+	
+	
+	Mat src1=src.reshape(0,src.rows*src.cols);
+	src1.convertTo(src1,CV_32F);
+	cout<<src1.size();
+	TermCriteria crt=TermCriteria( CV_TERMCRIT_EPS+CV_TERMCRIT_ITER, 5, 1);
+	kmeans(src1,2,labels,crt,1,KMEANS_RANDOM_CENTERS);
+	cout<<labels.size()<<endl;
+	return 0;
+}	
 
 int detectEnemy(Mat src,vector<ConnectObj> &cO)
 {
@@ -168,9 +243,11 @@ int detectEnemy(Mat src,vector<ConnectObj> &cO)
  	//cout<<src.size()<<endl;
       	Mat srcYCrCb;
       	Mat srcSigCh;
+	Mat srcHSV;
       	cvtColor(src,srcYCrCb,CV_BGR2YCrCb);
      	vector<Mat>srcCh;
-      	split(srcYCrCb,srcCh);      	
+      	split(srcYCrCb,srcCh); 
+	
 	if(team==RED)
       	{
       		srcSigCh=srcCh[1];
@@ -180,7 +257,7 @@ int detectEnemy(Mat src,vector<ConnectObj> &cO)
       		srcSigCh=srcCh[2];
       	}
       	
-	//imshow("sig",srcSigCh);
+	imshow("Featuresrc",srcSigCh);
 	Mat srcBin;
 	threshold(srcSigCh,srcBin,180,255,THRESH_BINARY);
 	imshow("Bin",srcBin);
