@@ -33,7 +33,7 @@ using namespace cv;
 
 
 const char* srcPath="6.jpg";
-const char* videoPath="p6.avi";
+const char* videoPath="p3.avi";
 
 Mat src,chel,tmpImg;
 int tmpVar=0,tmpVar1=0,tmpMin=0,tmpMax=0;
@@ -140,7 +140,7 @@ void regulate(int,void*)
 	//vector<int> up,down;
 	//up.push_back(tmpVar1);
 	//down.push_back(tmpVar);
-	inRange(tmpImg,tmpMin,tmpMax,tmpImg1);
+	inRange(tmpImg,tmpMax,255,tmpImg1);
 	imshow("thresh",tmpImg1);
 }
 
@@ -159,6 +159,10 @@ int detectFeatures(Mat src,Mat &dst)
       	Mat srcSigCh;
 	Mat srcGray;
 
+	Mat hsvBin;
+	Mat grayBin;
+	Mat ycrcbBin;
+
       	cvtColor(src,srcYCrCb,CV_BGR2YCrCb);
 	cvtColor(src,srcHSV,CV_BGR2HSV);
 	cvtColor(src,srcGray, CV_BGR2GRAY);
@@ -166,39 +170,44 @@ int detectFeatures(Mat src,Mat &dst)
      	vector<Mat>srcCh;
 
       	//YCrCb
-	split(srcYCrCb,srcCh);      	
+	split(srcYCrCb,srcCh);   
+	srcYCrCb.release();
 	if(team==RED)
-      	{
-      		srcSigCh=srcCh[2];
+      	{	
+      		srcYCrCb=srcCh[2];
       	}
       	else if(team==BLUE)
       	{
-      		srcSigCh=srcCh[1];
+      		srcYCrCb=srcCh[1];
       	}
-
+	inRange(srcYCrCb,136,255,ycrcbBin);imshow("ycrcb",srcYCrCb);
+	tmpImg=srcYCrCb;
+	
       	//Gray
-	srcSigCh=srcGray;
+	inRange(srcGray,0,50,grayBin);
 
 	//HSV
 	//split(srcHSV,srcCh);
 	//srcSigCh=srcCh[0];
+	inRange(srcHSV,Scalar(65,170,150),Scalar(86,255,255),hsvBin);
 	
 	//imshow("sig",srcSigCh);
 	//equalizeHist(srcSigCh,srcSigCh);
-	tmpImg=srcSigCh;
+	//tmpImg=srcSigCh;
 	
 
-	imshow("sig1",srcSigCh);
+	//imshow("sig1",srcSigCh);
 	Mat srcBin;
 	
 	//binary
 	//inRange(srcSigCh,0,81,srcBin);	
-	inRange(srcSigCh,0,50,srcBin);
+	//inRange(srcSigCh,0,50,srcBin);
 
 	//threshold(srcSigCh,srcBin,180,255,THRESH_BINARY);
 	//imshow("Bin",srcBin);
 
 	//vector<ConnectObj> cO;
+	srcBin=ycrcbBin;//ycrcbBin;
 	dst=srcBin;
 	//if(cO.size()>0)
 	//{
