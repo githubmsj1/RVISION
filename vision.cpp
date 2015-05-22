@@ -235,9 +235,9 @@ int detectFeatures(Mat src,Mat &dst)
 	//gray&ycrcb
 	Mat grayAYcrcb;
 	grayAYcrcb=grayBin&ycrcbBin;
-	dilate(grayAYcrcb,grayAYcrcb,getStructuringElement(0,Size(7,7)));imshow("&&&",grayAYcrcb);
-	vector<ConnectObj> yCO;
-	connectedComponents(grayAYcrcb,yCO);//drawCon(gYCO);
+	//dilate(grayAYcrcb,grayAYcrcb,getStructuringElement(0,Size(7,7)));imshow("&&&",grayAYcrcb);
+	//vector<ConnectObj> yCO;
+	//connectedComponents(grayAYcrcb,yCO);//drawCon(gYCO);
 	
 	Mat grayOYcrcb;
 	grayOYcrcb=grayBin|ycrcbBin;imshow("|||",grayOYcrcb);
