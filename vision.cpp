@@ -33,7 +33,7 @@ using namespace cv;
 
 
 const char* srcPath="6.jpg";
-const char* videoPath="p3.avi";
+const char* videoPath="p1.avi";
 
 Mat src,chel,tmpImg;
 int tmpVar=0,tmpVar1=0,tmpMin=0,tmpMax=0;
@@ -47,6 +47,8 @@ int recognizeEnemy(vector<ConnectObj> cO);
 int detectFeatures(Mat src,Mat &dst);
 int kmeansThresh(Mat src,Mat &dst);
 void regulate(int,void*);
+int drawCon(vector<ConnectObj> srcCon);
+int combineCon(Mat src,Mat &dst,vector<ConnectObj> cO);
 
 int main()
 {
@@ -96,6 +98,8 @@ int main()
 		vector<ConnectObj> cO;
 		Mat srcF;
 		//detectEnemy(src,cO);
+		
+		pyrDown(src,src,Size(src.cols/2,src.rows/2));
 		detectFeatures(src,srcF);
 		imshow("feature",srcF);
 		//connectedComponents(srcF,cO);
@@ -140,7 +144,9 @@ void regulate(int,void*)
 	//vector<int> up,down;
 	//up.push_back(tmpVar1);
 	//down.push_back(tmpVar);
-	inRange(tmpImg,tmpMax,255,tmpImg1);
+	
+	//Canny(tmpImg,tmpImg1,tmpMin,tmpMax,3);
+	inRange(tmpImg,0,tmpMax,tmpImg1);
 	imshow("thresh",tmpImg1);
 }
 
@@ -158,16 +164,19 @@ int detectFeatures(Mat src,Mat &dst)
 	Mat srcHSV;
       	Mat srcSigCh;
 	Mat srcGray;
+	Mat srcEdge;
 
 	Mat hsvBin;
 	Mat grayBin;
 	Mat ycrcbBin;
-
+	
+	
       	cvtColor(src,srcYCrCb,CV_BGR2YCrCb);
 	cvtColor(src,srcHSV,CV_BGR2HSV);
-	cvtColor(src,srcGray, CV_BGR2GRAY);
-
-     	vector<Mat>srcCh;
+	cvtColor(src,srcGray, CV_BGR2GRAY);//imshow("gray",srcGray);
+	//Canny(srcGray,srcEdge,tmpMin,tmpMax,3);imshow("edge",srcEdge);
+ 	
+ 	vector<Mat>srcCh;
 
       	//YCrCb
 	split(srcYCrCb,srcCh);   
@@ -180,17 +189,28 @@ int detectFeatures(Mat src,Mat &dst)
       	{
       		srcYCrCb=srcCh[1];
       	}
-	inRange(srcYCrCb,136,255,ycrcbBin);imshow("ycrcb",srcYCrCb);
-	tmpImg=srcYCrCb;
+	inRange(srcYCrCb,136,255,ycrcbBin);imshow("ycrcbb",ycrcbBin);
+	//dilate(ycrcbBin,ycrcbBin,getStructuringElement(0,Size(2,2)));
+	//vector<ConnectObj> ycrcbO;
+	//connectedComponents(ycrcbBin,ycrcbO);//drawCon(grayO);
+
+	//tmpImg=srcYCrCb;
 	
       	//Gray
-	inRange(srcGray,0,50,grayBin);
+	inRange(srcGray,0,31,grayBin);
+	//morphologyEx(srcYCrCb,srcYCrCb,MORPH_OPEN,getStructuringElement(0,Size(5,5)));
+	imshow("grayb",grayBin);
+	//vector<ConnectObj> grayO;
+	//connectedComponents(grayBin,grayO);//drawCon(grayO);
+	tmpImg=srcGray;
 
 	//HSV
-	//split(srcHSV,srcCh);
-	//srcSigCh=srcCh[0];
 	inRange(srcHSV,Scalar(65,170,150),Scalar(86,255,255),hsvBin);
+	//morphologyEx(srcYCrCb,srcYCrCb,MORPH_OPEN,getStructuringElement(0,Size(5,5)));
+	//imshow("hsvbin",hsvBin);
 	
+	
+	//combineCon(grayBin,ycrcbO);
 	//imshow("sig",srcSigCh);
 	//equalizeHist(srcSigCh,srcSigCh);
 	//tmpImg=srcSigCh;
@@ -207,7 +227,21 @@ int detectFeatures(Mat src,Mat &dst)
 	//imshow("Bin",srcBin);
 
 	//vector<ConnectObj> cO;
-	srcBin=ycrcbBin;//ycrcbBin;
+
+	//gray&ycrcb
+	Mat grayAYcrcb;
+	grayAYcrcb=grayBin&ycrcbBin;
+	dilate(grayAYcrcb,grayAYcrcb,getStructuringElement(0,Size(7,7)));imshow("&&&",grayAYcrcb);
+	vector<ConnectObj> yCO;
+	connectedComponents(grayAYcrcb,yCO);//drawCon(gYCO);
+	
+	Mat grayOYcrcb;
+	grayOYcrcb=grayBin|ycrcbBin;imshow("|||",grayOYcrcb);
+	//combineCon(grayOYcrcb,srcBin,yCO);
+	//vector<ConnectObj> gYCO;
+	//connectedComponents(srcBin,gYCO);
+
+	srcBin=grayOYcrcb;//ycrcbBin;
 	dst=srcBin;
 	//if(cO.size()>0)
 	//{
@@ -284,6 +318,25 @@ int detectEnemy(Mat src,vector<ConnectObj> &cO)
 
 }
 
+int drawCon(vector<ConnectObj> srcCon)
+{
+	
+	Mat src=Mat::zeros(500,500,CV_8UC3);
+	vector<vector<Point> >contours;
+	for(int i=0;i<srcCon.size();i++)
+	{
+		
+		
+		contours.push_back(srcCon[i].contour);
+		drawContours(src,contours,0,Scalar(0,255,0),2,8);
+		circle(src,srcCon[i].center,4,Scalar(0,0,255),-1);
+		rectangle(src,srcCon[i].bound.tl(),srcCon[i].bound.br(),Scalar(0,0,255),1);
+		contours.pop_back();
+	}
+	imshow("Draw area",src);
+	return 0;
+}
+
 int connectedComponents(Mat src,vector<ConnectObj> &cO)
 {
 	Mat srcMorpho;
@@ -291,7 +344,7 @@ int connectedComponents(Mat src,vector<ConnectObj> &cO)
 	Mat shapeEx=getStructuringElement(0,Size(3,3));
 	morphologyEx(src,srcMorpho,MORPH_OPEN,shapeEx);
 	morphologyEx(srcMorpho,srcMorpho,MORPH_CLOSE,shapeEx);
-	imshow("Morpho",srcMorpho);
+	//imshow("Morpho",srcMorpho);
 
 	Mat srcCanny;
 	Canny(srcMorpho,srcCanny,50,100,3);
@@ -402,6 +455,38 @@ int connectedComponents(Mat src,vector<ConnectObj> &cO)
 	return 0;
 }
 
+int combineCon(Mat src,Mat &dst,vector<ConnectObj> cO)
+{
+	
+	if(dst.cols==0)
+	{
+		dst=Mat::zeros(src.size(),CV_8UC1);
+	}
+	//cout<<cO.size()<<endl;
+	for(int i=0;i<cO.size();i++)
+	{
+		int h=cO[i].bound.height;
+		int w=cO[i].bound.width;
+		int rowh=cO[i].bound.tl().y-h/2;
+		int colh=cO[i].bound.tl().x-w/2;
+		int rowe=rowh+h*2;
+		int cole=colh+w*2;
+		for(int r=rowh;r<rowe;r++)
+		{
+			for(int c=colh;c<cole;c++)
+			{
+				//cout<<c<<endl;
+				dst.at<uchar>(r,c)=src.at<uchar>(r,c);//x,y
+
+			}
+		}
+
+	}//at(row,col)
+	
+	dilate(dst,dst,getStructuringElement(0,Size(7,7)));
+	imshow("combine",dst);
+	return 0;
+}
 
 int recognizeEnemy(vector<ConnectObj> cO)
 {
