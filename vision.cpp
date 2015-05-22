@@ -33,7 +33,7 @@ using namespace cv;
 
 
 const char* srcPath="6.jpg";
-const char* videoPath="p1.avi";
+const char* videoPath="p3.avi";
 
 Mat src,chel,tmpImg;
 int tmpVar=0,tmpVar1=0,tmpMin=0,tmpMax=0;
@@ -189,7 +189,7 @@ int detectFeatures(Mat src,Mat &dst)
       	{
       		srcYCrCb=srcCh[1];
       	}
-	inRange(srcYCrCb,136,255,ycrcbBin);imshow("ycrcbb",ycrcbBin);
+	inRange(srcYCrCb,136,255,ycrcbBin);//imshow("ycrcbb",ycrcbBin);
 	//dilate(ycrcbBin,ycrcbBin,getStructuringElement(0,Size(2,2)));
 	//vector<ConnectObj> ycrcbO;
 	//connectedComponents(ycrcbBin,ycrcbO);//drawCon(grayO);
@@ -199,15 +199,20 @@ int detectFeatures(Mat src,Mat &dst)
       	//Gray
 	inRange(srcGray,0,31,grayBin);
 	//morphologyEx(srcYCrCb,srcYCrCb,MORPH_OPEN,getStructuringElement(0,Size(5,5)));
-	imshow("grayb",grayBin);
+	//imshow("grayb",grayBin);
 	//vector<ConnectObj> grayO;
 	//connectedComponents(grayBin,grayO);//drawCon(grayO);
 	tmpImg=srcGray;
 
 	//HSV
+	Mat fullCar;
 	inRange(srcHSV,Scalar(65,170,150),Scalar(86,255,255),hsvBin);
-	vector<ConnectObj> hsvO;
-	connectedComponents(hsvBin,hsvO);//drawCon(grayO);
+	dilate(hsvBin,hsvBin,getStructuringElement(0,Size(15,15)));
+	//vector<ConnectObj> hsvO;
+	//connectedComponents(hsvBin,hsvO);//drawCon(grayO);
+	imshow("hsv",hsvBin);
+
+	//combineCon(grayBin,ycrcbO);
 	//morphologyEx(srcYCrCb,srcYCrCb,MORPH_OPEN,getStructuringElement(0,Size(5,5)));
 	//imshow("hsvbin",hsvBin);
 	
@@ -241,6 +246,7 @@ int detectFeatures(Mat src,Mat &dst)
 	
 	Mat grayOYcrcb;
 	grayOYcrcb=grayBin|ycrcbBin;imshow("|||",grayOYcrcb);
+	//combineCon(grayOYcrcb,fullCar,hsvO);imshow("full",fullCar);
 	//combineCon(grayOYcrcb,srcBin,yCO);
 	//vector<ConnectObj> gYCO;
 	//connectedComponents(srcBin,gYCO);
@@ -462,33 +468,31 @@ int connectedComponents(Mat src,vector<ConnectObj> &cO)
 int combineCon(Mat src,Mat &dst,vector<ConnectObj> cO)
 {
 	
-	if(dst.cols==0)
-	{
-		dst=Mat::zeros(src.size(),CV_8UC1);
-	}
+	Mat dst1=Mat::zeros(src.size(),CV_8UC1);
 	//cout<<cO.size()<<endl;
 	for(int i=0;i<cO.size();i++)
 	{
 		int h=cO[i].bound.height;
 		int w=cO[i].bound.width;
-		int rowh=cO[i].bound.tl().y-h/2;
+		int rowh=cO[i].bound.tl().y+h;
 		int colh=cO[i].bound.tl().x-w/2;
-		int rowe=rowh+h*2;
-		int cole=colh+w*2;
+		int rowe=rowh+h;
+		int cole=colh+w*4;
 		for(int r=rowh;r<rowe;r++)
 		{
 			for(int c=colh;c<cole;c++)
 			{
 				//cout<<c<<endl;
-				dst.at<uchar>(r,c)=src.at<uchar>(r,c);//x,y
+				dst1.at<uchar>(r,c)=src.at<uchar>(r,c);//x,y
 
 			}
 		}
 
 	}//at(row,col)
 	
-	dilate(dst,dst,getStructuringElement(0,Size(7,7)));
-	imshow("combine",dst);
+	dilate(dst1,dst1,getStructuringElement(0,Size(7,7)));
+	dst=dst1;
+	//imshow("combine",dst);
 	return 0;
 }
 
