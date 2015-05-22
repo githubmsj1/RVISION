@@ -206,10 +206,14 @@ int detectFeatures(Mat src,Mat &dst)
 
 	//HSV
 	inRange(srcHSV,Scalar(65,170,150),Scalar(86,255,255),hsvBin);
+	vector<ConnectObj> hsvO;
+	connectedComponents(hsvBin,hsvO);//drawCon(grayO);
 	//morphologyEx(srcYCrCb,srcYCrCb,MORPH_OPEN,getStructuringElement(0,Size(5,5)));
 	//imshow("hsvbin",hsvBin);
 	
 	
+
+	//combinCon(hsvBin,);
 	//combineCon(grayBin,ycrcbO);
 	//imshow("sig",srcSigCh);
 	//equalizeHist(srcSigCh,srcSigCh);
