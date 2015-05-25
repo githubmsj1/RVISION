@@ -21,8 +21,8 @@ using namespace cv;
 #define NCOM "COM3"
 
 #if RUN_STATUS==DEBUG
-	#define PAUSE ENABLE
-	#define IMG_SOURCE VIDEO
+	#define PAUSE DISABLE
+	#define IMG_SOURCE CAMERA//VIDEO
 	#define TEAM_DEFAULT BLUE
 #else
 	#define PAUSE ENABLE       
@@ -33,12 +33,13 @@ using namespace cv;
 
 
 const char* srcPath="6.jpg";
-const char* videoPath="p3.avi";
+const char* videoPath="p5.avi";
 
 Mat src,chel,tmpImg;
 int tmpVar=0,tmpVar1=0,tmpMin=0,tmpMax=0;
 int timeMs=0;
 int team;
+bool onView=false;
 
 
 int detectEnemy(Mat src,vector<ConnectObj> &cO);
@@ -49,6 +50,9 @@ int kmeansThresh(Mat src,Mat &dst);
 void regulate(int,void*);
 int drawCon(vector<ConnectObj> srcCon);
 int combineCon(Mat src,Mat &dst,vector<ConnectObj> cO);
+int lightBarDetect(Mat src,Rect &roi);
+int carShellDetect(Mat src,Rect roi,Rect &shell,Rect &roi1,Point input,Point &output);
+int filter(vector<Point> objs,Point input,Point output);
 
 int main()
 {
@@ -79,7 +83,8 @@ int main()
 	namedWindow("thresh",CV_WINDOW_AUTOSIZE );
 	createTrackbar( "Thresh1","thresh",&tmpVar, 255,regulate );
 	createTrackbar( "Thresh2","thresh",&tmpVar1, 255,regulate );
-	
+	vector<Point>objs;
+
 	while(true)
 	{	
 		//aquire the source picture
@@ -98,11 +103,38 @@ int main()
 		vector<ConnectObj> cO;
 		Mat srcF;
 		//detectEnemy(src,cO);
-		
 		pyrDown(src,src,Size(src.cols/2,src.rows/2));
-		detectFeatures(src,srcF);
-		imshow("feature",srcF);
+		
+		
+		Rect region,region1,region2;Mat src1;src.copyTo(src1);
+		
+		int light=lightBarDetect(src,region);
+		
+		Point objCenter=Point(region.x+region.width/2,region.y+region.height/2);
+		static Point oldObjCenter=objCenter;
+		
+
+		if(onView==true)
+		{
+			if(carShellDetect(src1,region,region1,region2,objCenter,objCenter)!=0)
+			{
+				objCenter=Point(region.x+region.width/2,region.y+region.height/2);
+				
+			}
+			
+			filter(objs,objCenter,objCenter);
+			rectangle(src1,region1.tl(),region1.br(),Scalar(0,255,0),1);
+			rectangle(src1,region.tl(),region.br(),Scalar(0,0,255),1);
+			circle(src1,objCenter,4,Scalar(0,0,255),-1);
+		}
+		
+		imshow("src1",src1);
+		
+
+		//detectFeatures(src,srcF);
+		//imshow("feature",srcF);
 		//connectedComponents(srcF,cO);
+
 
 		//control the processing period
 		char waitTime=0;
@@ -112,7 +144,7 @@ int main()
 		}
 		else
 		{
-			waitTime=40;
+			waitTime=10;
 		}
 		if((char)waitKey(waitTime)=='q')
 		{
@@ -146,8 +178,222 @@ void regulate(int,void*)
 	//down.push_back(tmpVar);
 	
 	//Canny(tmpImg,tmpImg1,tmpMin,tmpMax,3);
-	inRange(tmpImg,0,tmpMax,tmpImg1);
-	imshow("thresh",tmpImg1);
+	inRange(tmpImg,tmpMax,255,tmpImg1);
+	imshow("thresh",Mat::zeros(400,400,CV_8UC1));
+	imshow("output",tmpImg1);
+
+}
+
+int filter(vector<Point> objs,Point input,Point output)
+{	
+
+	objs.push_back(input);	
+	if(objs.size()==3)
+	{
+		
+		//objs.erase(objs.begin());
+		int dis1=abs(objs[2].x+objs[2].y-objs[1].x-objs[1].y);
+		int dis2=abs(objs[1].x+objs[1].y-objs[0].x-objs[0].y);
+		if(dis1>2*dis2)
+		{
+			objs.pop_back();
+		}
+		else
+		{
+			objs.erase(objs.begin());
+		}
+	}
+	output=objs.back();
+	return 0;
+}
+int lightBarDetect(Mat src,Rect &roi)
+{
+	static Rect oldRoi;
+
+	Mat srcHSV,hsvBin;
+	vector<Mat>srcCh;
+	cvtColor(src,srcHSV,CV_BGR2HSV);
+	inRange(srcHSV,Scalar(65,170,150),Scalar(86,255,255),hsvBin);
+	
+	dilate(hsvBin,hsvBin,getStructuringElement(0,Size(10,10)));
+	imshow("hsv",hsvBin);
+	vector<ConnectObj> cO;
+	connectedComponents(hsvBin,cO);
+	if(cO.size()>0)
+	{	
+		onView=true;
+		int oldWidth=roi.width;
+		roi=cO[0].bound;
+		roi.y=roi.y+roi.width/2;
+		roi.height=3*roi.width;
+		roi.width=4*roi.width;
+		roi.x=roi.x-(roi.width-oldWidth)/2;
+		
+		roi.x=MIN(MAX(roi.x,0),src.rows-1);
+		roi.y=MIN(MAX(roi.y,0),src.cols-1);
+		oldRoi=roi;
+		
+		return 0;
+	}
+	else
+	{	
+		if(onView==true)
+		{
+			roi=oldRoi;
+		}	
+		return -1;
+	}
+}
+
+int carShellDetect(Mat src,Rect roi,Rect &shell,Rect &roi1,Point input,Point &output)
+{
+	//static Point origin=Point(roi.x+roi.width/2,roi.y+roi.height);
+	bool grayDetect=false;
+	bool ycrcbDetect=false;
+	Point origin=input;
+	Point origin1,origin2;
+	int dis1=999,dis2=999;
+	Rect shell1,shell2;
+	
+	Rect roi1=roi;
+	roi1.x=MIN(MAX(x,0),src.width-1);
+	roi1.y=MIN(MAX(y,0),src.height-1);
+	roi1.width=MIN(roi1.width-1-roi.x,roi1.width);
+	roi1.heiht=MIN(roi1.height-1-roi.y,roi1.height);
+
+	Mat src1(src1,roi),srcYCrCb,ycrcbBin;
+	Mat temp=Mat::zeros(src.size(),CV_8UC3);
+
+	vector<Mat>srcCh;
+      	cvtColor(src1,srcYCrCb,CV_BGR2YCrCb);
+	split(srcYCrCb,srcCh);   
+	srcYCrCb=srcCh[1];
+	tmpImg=srcYCrCb;
+	inRange(srcYCrCb,165,255,ycrcbBin);//imshow("ycrcbb",ycrcbBin);//136,225
+	dilate(ycrcbBin,ycrcbBin,getStructuringElement(0,Size(3,3)));
+	vector<ConnectObj> cO;
+	connectedComponents(ycrcbBin,cO); //imshow("ycrcb",srcYCrCb);
+	
+	imshow("ycrcbbin",ycrcbBin);
+
+
+
+	Mat  srcGray,grayBin;
+	cvtColor(src1,srcGray, CV_BGR2GRAY);//imshow("gray",srcGray)
+	inRange(srcGray,0,31,grayBin);imshow("gray",grayBin);
+	//dilate(srcGray,srcGray,getStructuringElement(0,Size(10,10)));
+
+	
+	Moments mu;
+	mu=moments(grayBin,false);
+	Point center=Point(mu.m10/mu.m00,mu.m01/mu.m00);
+
+	if(center.x>0&&center.y>0)
+	{
+		int dx=center.x-roi.width/2;
+		int dy=center.y-roi.height/2;
+		shell2=roi;
+		shell2.x=roi.x+dx;
+		shell2.y=roi.y+dy;
+		origin2.x=shell2.x+shell2.width/2;
+		origin2.y=shell2.y+shell2.height/2;
+		dis2=abs(origin2.x+origin2.y-origin.x-origin.y);
+		cout<<center<<endl;
+		grayDetect=true;
+	}
+	if(cO.size()>0)//cO.size()>0)
+	{
+		
+		if(cO.size()>1)
+		{
+			int mindis;
+			int minidx=0;
+			int cOX=cO[0].bound.x+cO[0].bound.width/2+roi.x;
+			int cOY=cO[0].bound.y+cO[0].bound.height/2+roi.y;
+			mindis=abs(cOX+cOY-origin.x-origin.y);
+			for(int i=1;i<cO.size();i++)
+			{
+				cOX=cO[i].bound.x+cO[i].bound.width/2+roi.x;
+				cOY=cO[i].bound.y+cO[i].bound.height/2+roi.y;
+				int dis=abs(cOX+cOY-origin.x-origin.y);
+
+				if(dis<mindis)
+				{
+					minidx=i;
+					mindis=dis;
+				}
+			}
+		
+			shell1=cO[minidx].bound;
+		}
+		else
+		{
+			shell1=cO[0].bound;
+		}
+		shell1.x=shell1.x+roi.x;
+		shell1.y=shell1.y+roi.y;
+		origin1.x=shell1.x+shell1.width/2;
+		origin1.y=shell1.y+shell1.height/2;
+		dis1=abs(origin1.x+origin1.y-origin.x-origin.y);
+		
+			
+
+		//circle(temp,origin1,4,Scalar(0,0,255),-1);
+		//circle(temp,origin2,4,Scalar(0,255,0),-1);
+		//circle(temp,input,5,Scalar(255,0,0),-1);
+		//circle(temp,output,5,Scalar(255,0,0),2);
+		ycrcbDetect=true;
+	}
+
+	if(grayDetect==true&&ycrcbDetect==true)
+	{
+		if(dis1>dis2)
+		{
+			output.x=origin2.x;
+			output.y=origin2.y;
+			shell=shell2;
+
+		}
+		else
+		{
+			output.x=origin1.x;
+			output.y=origin1.y;
+			shell=shell1;
+		}
+		return 0;
+		
+	}
+	if(grayDetect==true&&ycrcbDetect==false)
+	{
+		output.x=origin2.x;
+		output.y=origin2.y;
+		shell=shell2;
+
+		return 0;
+	
+	}
+	if(grayDetect==false&&ycrcbDetect==true)
+	{
+		output.x=origin1.x;
+		output.y=origin1.y;
+		shell=shell1;
+
+		return 0;
+	}
+	if(grayDetect==false&&ycrcbDetect==false)
+	{
+		return -1;
+	}
+	
+		
+		
+		//cout<<dis1<<"  "<<dis2<<endl;
+		
+		
+		
+		imshow("temp",temp);
+		return 0;
+	
 }
 
 int detectFeatures(Mat src,Mat &dst)
@@ -194,7 +440,7 @@ int detectFeatures(Mat src,Mat &dst)
 	//vector<ConnectObj> ycrcbO;
 	//connectedComponents(ycrcbBin,ycrcbO);//drawCon(grayO);
 
-	//tmpImg=srcYCrCb;
+	split(srcYCrCb,srcCh);//tmpImg=srcYCrCb;
 	
       	//Gray
 	inRange(srcGray,0,31,grayBin);
@@ -474,8 +720,8 @@ int combineCon(Mat src,Mat &dst,vector<ConnectObj> cO)
 	{
 		int h=cO[i].bound.height;
 		int w=cO[i].bound.width;
-		int rowh=cO[i].bound.tl().y+h;
-		int colh=cO[i].bound.tl().x-w/2;
+		int rowh=cO[i].bound.y+h;
+		int colh=cO[i].bound.x-w/2;
 		int rowe=rowh+h;
 		int cole=colh+w*4;
 		for(int r=rowh;r<rowe;r++)
