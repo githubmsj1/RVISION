@@ -255,13 +255,19 @@ int carShellDetect(Mat src,Rect roi,Rect &shell,Rect &roi1,Point input,Point &ou
 	int dis1=999,dis2=999;
 	Rect shell1,shell2;
 	
-	Rect roi1=roi;
-	roi1.x=MIN(MAX(x,0),src.width-1);
-	roi1.y=MIN(MAX(y,0),src.height-1);
-	roi1.width=MIN(roi1.width-1-roi.x,roi1.width);
-	roi1.heiht=MIN(roi1.height-1-roi.y,roi1.height);
+	Rect roii;
+	Point br=roi.br();
+	br.x=MIN(MAX(br.x,0),src.cols-1);
+	br.y=MIN(MAX(br.y,0),src.rows-1);
+	roii.x=MIN(MAX(roi.x,0),src.cols-1);
+	roii.y=MIN(MAX(roi.y,0),src.rows-1);
+	roii.width=br.x-roii.x+1;
+	roii.height=br.y-roii.y+1;
+	
+	
 
-	Mat src1(src1,roi),srcYCrCb,ycrcbBin;
+	Mat src1(src,roii),srcYCrCb,ycrcbBin;
+
 	Mat temp=Mat::zeros(src.size(),CV_8UC3);
 
 	vector<Mat>srcCh;
