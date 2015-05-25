@@ -21,7 +21,7 @@ using namespace cv;
 #define NCOM "COM3"
 
 #if RUN_STATUS==DEBUG
-	#define PAUSE DISABLE
+	#define PAUSE ENABLE
 	#define IMG_SOURCE CAMERA//VIDEO
 	#define TEAM_DEFAULT BLUE
 #else
