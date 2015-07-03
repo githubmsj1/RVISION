@@ -1,6 +1,7 @@
 #include<iostream>
 #include"opencv2/opencv.hpp"
 #include"vision.h"
+#include"serial.h"
 
 using namespace std;
 using namespace cv;
@@ -20,14 +21,22 @@ using namespace cv;
 
 #define NCOM "COM3"
 
+#define SCALE 2
+#define WIDTH 720
+#define HIGHT 480
+#define PORTWIDTH 160 
+#define PORTHIGHT 120
+
 #if RUN_STATUS==DEBUG
 	#define PAUSE ENABLE
-	#define IMG_SOURCE CAMERA//VIDEO
+	#define IMG_SOURCE VIDEO//CAMERA//VIDEO
 	#define TEAM_DEFAULT BLUE
+	#define PORT ENABLE
 #else
 	#define PAUSE ENABLE       
 	#define IMG_SOURCE PICTURE
 	#define TEAM_DEFAULT RED
+	#define PORT DISABLE
 #endif
 
 
@@ -40,6 +49,8 @@ int tmpVar=0,tmpVar1=0,tmpMin=0,tmpMax=0;
 int timeMs=0;
 int team;
 bool onView=false;
+int reduction=1;
+
 
 
 int detectEnemy(Mat src,vector<ConnectObj> &cO);
@@ -54,12 +65,16 @@ int lightBarDetect(Mat src,Rect &roi);
 int carShellDetect(Mat src,Rect roi,Rect &shell,Rect &roi1,Point input,Point &output);
 int filter(vector<Point> objs,Point input,Point output);
 
+
 int main()
 {
 	
 	team=TEAM_DEFAULT;
 	
 	VideoCapture cap;
+	Serial serial;
+	unsigned char sendBuff[10];
+
 	if(IMG_SOURCE==CAMERA)
 	{
 		
@@ -78,6 +93,14 @@ int main()
 			cout<<"cannot open the video";
 		}
 	}
+	
+	if(PORT==ENABLE)
+	{
+		serial.init();
+		reduction=WIDTH/SCALE/PORTWIDTH;
+		
+	}
+	
 
 	namedWindow("Source",0);
 	namedWindow("thresh",CV_WINDOW_AUTOSIZE );
@@ -103,7 +126,7 @@ int main()
 		vector<ConnectObj> cO;
 		Mat srcF;
 		//detectEnemy(src,cO);
-		pyrDown(src,src,Size(src.cols/2,src.rows/2));
+		pyrDown(src,src,Size(src.cols/SCALE,src.rows/SCALE));
 		
 		
 		Rect region,region1,region2;Mat src1;src.copyTo(src1);
@@ -128,6 +151,20 @@ int main()
 			circle(src1,objCenter,4,Scalar(0,0,255),-1);
 		}
 		
+		if(PORT==ENABLE)
+		{
+			
+			sendBuff[0]=0xf2;
+			sendBuff[1]=objCenter.x/reduction;
+			sendBuff[2]=objCenter.y/reduction;
+			
+			serial.send_data_tty(sendBuff,3);
+			//cout<<(int)sendBuff[1]<<" "<<(int)sendBuff[2]<<endl;
+		}
+
+
+		//cout<<objCenter<<endl;
+		
 		imshow("src1",src1);
 		
 
@@ -150,6 +187,7 @@ int main()
 		{
 			break;
 		}
+
 		
 
 	}
@@ -304,7 +342,7 @@ int carShellDetect(Mat src,Rect roi,Rect &shell,Rect &roi1,Point input,Point &ou
 		origin2.x=shell2.x+shell2.width/2;
 		origin2.y=shell2.y+shell2.height/2;
 		dis2=abs(origin2.x+origin2.y-origin.x-origin.y);
-		cout<<center<<endl;
+		//cout<<center<<endl;
 		grayDetect=true;
 	}
 	if(cO.size()>0)//cO.size()>0)

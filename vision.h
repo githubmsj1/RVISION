@@ -37,4 +37,23 @@ class CObj
 		float lightBarRatio;
 		
 };
+
+class TrackObj
+{
+	public:
+		TrackObj();
+		int initObj(Mat src,Rect trackWindow);
+		int track(Mat src,Rect& outputWindow );
+		int updateObj(Mat src,Rect trackWindow);
+		int updateHist(Mat srcHist,Mat curHist,Mat& dstHist);
+		
+	private:
+		Rect trackWindow1,searchRange;
+		Mat hist1,hist2,hist3,hist4;
+		float hranges[2];
+		const float* phranges;
+		int hsize;
+		
+
+};
 #endif
