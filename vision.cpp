@@ -28,8 +28,8 @@ using namespace cv;
 #define PORTHIGHT 120
 
 #if RUN_STATUS==DEBUG
-	#define PAUSE ENABLE
-	#define IMG_SOURCE VIDEO//CAMERA//VIDEO
+#define PAUSE 	DISABLE
+	#define IMG_SOURCE CAMERA//VIDEO
 	#define TEAM_DEFAULT BLUE
 	#define PORT ENABLE
 #else
@@ -78,7 +78,7 @@ int main()
 	if(IMG_SOURCE==CAMERA)
 	{
 		
-		cap.open(1);
+		cap.open(0);
 		if(!cap.isOpened())
 		{
 			cout<<"cannot open the camera";
