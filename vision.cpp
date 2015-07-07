@@ -20,6 +20,7 @@ using namespace cv;
 #define BLUE 1
 
 #define NCOM "COM3"
+#define CAMNUM 1
 
 #define SCALE 2
 #define WIDTH 720
@@ -63,7 +64,7 @@ int drawCon(vector<ConnectObj> srcCon);
 int combineCon(Mat src,Mat &dst,vector<ConnectObj> cO);
 int lightBarDetect(Mat src,Rect &roi);
 int carShellDetect(Mat src,Rect roi,Rect &shell,Rect &roi1,Point input,Point &output);
-int filter(vector<Point> objs,Point input,Point output);
+int filter(vector<Point>& objs,Point input,Point& output);
 
 
 int main()
@@ -78,7 +79,7 @@ int main()
 	if(IMG_SOURCE==CAMERA)
 	{
 		
-		cap.open(0);
+		cap.open(CAMNUM);
 		if(!cap.isOpened())
 		{
 			cout<<"cannot open the camera";
@@ -222,27 +223,36 @@ void regulate(int,void*)
 
 }
 
-int filter(vector<Point> objs,Point input,Point output)
+int filter(vector<Point>& objs,Point input,Point& output)
 {	
-
-	objs.push_back(input);	
+	
+	cout<<objs.size()<<endl;
 	if(objs.size()==3)
 	{
 		
 		//objs.erase(objs.begin());
-		int dis1=abs(objs[2].x+objs[2].y-objs[1].x-objs[1].y);
-		int dis2=abs(objs[1].x+objs[1].y-objs[0].x-objs[0].y);
-		if(dis1>2*dis2)
-		{
-			objs.pop_back();
-		}
-		else
-		{
-			objs.erase(objs.begin());
-		}
+		
+		//int dis1=abs(objs[2].x+objs[2].y-objs[1].x-objs[1].y);
+		//int dis2=abs(objs[1].x+objs[1].y-objs[0].x-objs[0].y);
+		//if(dis1>2*dis2)
+		//{
+		//	objs.pop_back();
+		//}
+		//else
+		//{
+		//	objs.erase(objs.begin());
+		//}
+		output=objs.back()*0.8+input*0.2;
+		objs.push_back(output);
+		objs.erase(objs.begin());
 	}
-	output=objs.back();
+	else
+	{
+		objs.push_back(input);	
+	}
+	
 	return 0;
+
 }
 int lightBarDetect(Mat src,Rect &roi)
 {
@@ -260,16 +270,36 @@ int lightBarDetect(Mat src,Rect &roi)
 	if(cO.size()>0)
 	{	
 		onView=true;
-		int oldWidth=roi.width;
-		roi=cO[0].bound;
-		roi.y=roi.y+roi.width/2;
-		roi.height=3*roi.width;
-		roi.width=4*roi.width;
-		roi.x=roi.x-(roi.width-oldWidth)/2;
+
+		roi.width=MIN(cO[0].bound.width*4,src.cols);
+		roi.height=MIN(cO[0].bound.height*6,src.rows);
+		roi.y=cO[0].bound.y+5*cO[0].bound.width;
+		roi.x=cO[0].bound.x-(roi.width-cO[0].bound.width)/2;
+		roi.x=MAX(roi.x,0);
+		roi.y=MAX(roi.y,0);
+		if(src.cols-roi.x<roi.width)
+		{
+			roi.x=src.cols-roi.width;
+		}
+		if(src.rows-roi.y<roi.height)
+		{
+			roi.y=src.rows-roi.height;
+		}
+		//int oldWidth=roi.width;
+		//roi=cO[0].bound;
+		//roi.y=roi.y+roi.width/2;
+		//roi.height=3*roi.width;
+		//roi.width=4*roi.width;
+		//roi.x=roi.x-(roi.width-oldWidth)/2;
 		
-		roi.x=MIN(MAX(roi.x,0),src.rows-1);
-		roi.y=MIN(MAX(roi.y,0),src.cols-1);
+		//roi.x=MIN(MAX(roi.x,0),src.rows-1);
+		//roi.y=MIN(MAX(roi.y,0),src.cols-1);
 		oldRoi=roi;
+		
+		
+		//cout<<src.size()<<roi<<endl;
+		Mat tmp(src,roi);
+		imshow("lightbarregion",tmp);
 		
 		return 0;
 	}
@@ -285,6 +315,7 @@ int lightBarDetect(Mat src,Rect &roi)
 
 int carShellDetect(Mat src,Rect roi,Rect &shell,Rect &roi1,Point input,Point &output)
 {
+	//2:gray 1:crcb
 	//static Point origin=Point(roi.x+roi.width/2,roi.y+roi.height);
 	bool grayDetect=false;
 	bool ycrcbDetect=false;
@@ -396,6 +427,7 @@ int carShellDetect(Mat src,Rect roi,Rect &shell,Rect &roi1,Point input,Point &ou
 			output.x=origin2.x;
 			output.y=origin2.y;
 			shell=shell2;
+			cout<<"gray"<<endl;
 
 		}
 		else
@@ -403,6 +435,8 @@ int carShellDetect(Mat src,Rect roi,Rect &shell,Rect &roi1,Point input,Point &ou
 			output.x=origin1.x;
 			output.y=origin1.y;
 			shell=shell1;
+			cout<<"crcb"<<endl;
+
 		}
 		return 0;
 		
@@ -412,6 +446,7 @@ int carShellDetect(Mat src,Rect roi,Rect &shell,Rect &roi1,Point input,Point &ou
 		output.x=origin2.x;
 		output.y=origin2.y;
 		shell=shell2;
+		cout<<"gray"<<endl;
 
 		return 0;
 	
@@ -421,6 +456,7 @@ int carShellDetect(Mat src,Rect roi,Rect &shell,Rect &roi1,Point input,Point &ou
 		output.x=origin1.x;
 		output.y=origin1.y;
 		shell=shell1;
+		cout<<"crcb"<<endl;
 
 		return 0;
 	}
