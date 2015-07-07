@@ -115,8 +115,8 @@ int TrackObj::track(Mat image,Rect& outputWindow)
 
 	int sca=2;
 	searchRange=outputWindow;
-	searchRange.height=searchRange.height*sca;
-	searchRange.width=searchRange.width*sca;
+	searchRange.height=MIN(image.rows,searchRange.height*sca);
+	searchRange.width=MIN(image.cols,searchRange.width*sca);
 	searchRange.x-=searchRange.width/4;
 	searchRange.y-=searchRange.height/4;
 	searchRange.x=MAX(searchRange.x,0);
@@ -130,9 +130,9 @@ int TrackObj::track(Mat image,Rect& outputWindow)
 	{
 		searchRange.y=image.rows-searchRange.height;
 	}
+	
 	//take the search image
 	Mat image1=Mat(image,searchRange);
-        
 	Mat chD1,chD2,chD3;
 	chD1.create(image1.size(), image1.depth());
 	chD2.create(image1.size(), image1.depth());

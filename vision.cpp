@@ -108,7 +108,7 @@ int main()
 	createTrackbar( "Thresh1","thresh",&tmpVar, 255,regulate );
 	createTrackbar( "Thresh2","thresh",&tmpVar1, 255,regulate );
 	vector<Point>objs;
-
+	TrackObj track=TrackObj();
 	while(true)
 	{	
 		//aquire the source picture
@@ -137,19 +137,34 @@ int main()
 		Point objCenter=Point(region.x+region.width/2,region.y+region.height/2);
 		static Point oldObjCenter=objCenter;
 		
-
-		if(onView==true)
+		if(light==0)
 		{
-			if(carShellDetect(src1,region,region1,region2,objCenter,objCenter)!=0)
+
+			track.initObj(src,region);
+			if(onView==true)
 			{
-				objCenter=Point(region.x+region.width/2,region.y+region.height/2);
+				if(carShellDetect(src1,region,region1,region2,objCenter,objCenter)!=0)
+				{
+					objCenter=Point(region.x+region.width/2,region.y+region.height/2);
+					
+				}
 				
+				filter(objs,objCenter,objCenter);
+				rectangle(src1,region1.tl(),region1.br(),Scalar(0,255,0),1);
+				rectangle(src1,region.tl(),region.br(),Scalar(0,0,255),1);
+				circle(src1,objCenter,4,Scalar(0,0,255),-1);
 			}
-			
-			filter(objs,objCenter,objCenter);
-			rectangle(src1,region1.tl(),region1.br(),Scalar(0,255,0),1);
-			rectangle(src1,region.tl(),region.br(),Scalar(0,0,255),1);
-			circle(src1,objCenter,4,Scalar(0,0,255),-1);
+		}
+		else
+		{
+			if(onView==true)
+			{
+				//cout<<"track"<<endl;
+				track.track(src,region);
+				objCenter=Point(region.x+region.width/2,region.y+region.height/2);
+				rectangle(src1,region.tl(),region.br(),Scalar(255,0,0),2);
+				circle(src1,objCenter,4,Scalar(0,0,255),-1);
+			}
 		}
 		
 		if(PORT==ENABLE)
@@ -226,7 +241,6 @@ void regulate(int,void*)
 int filter(vector<Point>& objs,Point input,Point& output)
 {	
 	
-	cout<<objs.size()<<endl;
 	if(objs.size()==3)
 	{
 		
