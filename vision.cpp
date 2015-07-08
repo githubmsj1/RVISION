@@ -29,12 +29,12 @@ using namespace cv;
 #define PORTHIGHT 120
 
 #if RUN_STATUS==DEBUG
-#define PAUSE 	DISABLE
+	#define PAUSE 	DISABLE
 	#define IMG_SOURCE CAMERA//VIDEO
 	#define TEAM_DEFAULT BLUE
 	#define PORT ENABLE
 #else
-	#define PAUSE ENABLE       
+	#define PAUSE DISABLE       
 	#define IMG_SOURCE PICTURE
 	#define TEAM_DEFAULT RED
 	#define PORT DISABLE
@@ -62,8 +62,8 @@ int kmeansThresh(Mat src,Mat &dst);
 void regulate(int,void*);
 int drawCon(vector<ConnectObj> srcCon);
 int combineCon(Mat src,Mat &dst,vector<ConnectObj> cO);
-int lightBarDetect(Mat src,Rect &roi);
-int carShellDetect(Mat src,Rect roi,Rect &shell,Rect &roi1,Point input,Point &output);
+int lightBarDetect(Mat src,Rect &roi,Mat& lightMask);
+int carShellDetect(Mat src,Rect roi,Rect &shell,Rect &roi1,Point input,Point &output,Mat lightMask);
 int filter(vector<Point>& objs,Point input,Point& output);
 
 
@@ -130,9 +130,13 @@ int main()
 		pyrDown(src,src,Size(src.cols/SCALE,src.rows/SCALE));
 		
 		
-		Rect region,region1,region2;Mat src1;src.copyTo(src1);
+		Rect region,region1,region2;
+		Mat src1;
 		
-		int light=lightBarDetect(src,region);
+		src.copyTo(src1);
+		
+		Mat lightMask;
+		int light=lightBarDetect(src,region,lightMask);
 		
 		Point objCenter=Point(region.x+region.width/2,region.y+region.height/2);
 		static Point oldObjCenter=objCenter;
@@ -143,7 +147,7 @@ int main()
 			track.initObj(src,region);
 			if(onView==true)
 			{
-				if(carShellDetect(src1,region,region1,region2,objCenter,objCenter)!=0)
+				if(carShellDetect(src1,region,region1,region2,objCenter,objCenter,lightMask)!=0)
 				{
 					objCenter=Point(region.x+region.width/2,region.y+region.height/2);
 					
@@ -268,16 +272,22 @@ int filter(vector<Point>& objs,Point input,Point& output)
 	return 0;
 
 }
-int lightBarDetect(Mat src,Rect &roi)
+
+//lightmask:the image where the light aera are sat 255
+int lightBarDetect(Mat src,Rect &roi,Mat& lightMask)
 {
 	static Rect oldRoi;
 
 	Mat srcHSV,hsvBin;
 	vector<Mat>srcCh;
 	cvtColor(src,srcHSV,CV_BGR2HSV);
-	inRange(srcHSV,Scalar(65,170,150),Scalar(86,255,255),hsvBin);
+	//inRange(srcHSV,Scalar(65,170,150),Scalar(86,255,255),hsvBin);
+	inRange(srcHSV,Scalar(65,170,150),Scalar(210,255,255),hsvBin);
 	
 	dilate(hsvBin,hsvBin,getStructuringElement(0,Size(10,10)));
+	hsvBin.copyTo(lightMask);//copy the light bin to mask for shell detect
+	lightMask=~lightMask;
+
 	imshow("hsv",hsvBin);
 	vector<ConnectObj> cO;
 	connectedComponents(hsvBin,cO);
@@ -327,10 +337,16 @@ int lightBarDetect(Mat src,Rect &roi)
 	}
 }
 
-int carShellDetect(Mat src,Rect roi,Rect &shell,Rect &roi1,Point input,Point &output)
+
+//origin:last point
+int carShellDetect(Mat src,Rect roi,Rect &shell,Rect &roi1,Point input,Point &output,Mat lightMask)
 {
 	//2:gray 1:crcb
 	//static Point origin=Point(roi.x+roi.width/2,roi.y+roi.height);
+
+	
+
+
 	bool grayDetect=false;
 	bool ycrcbDetect=false;
 	Point origin=input;
@@ -350,14 +366,21 @@ int carShellDetect(Mat src,Rect roi,Rect &shell,Rect &roi1,Point input,Point &ou
 	
 
 	Mat src1(src,roii),srcYCrCb,ycrcbBin;
+	Mat lightMask1(lightMask,roii);
 
 	Mat temp=Mat::zeros(src.size(),CV_8UC3);
-
+	
+	//process the car color
 	vector<Mat>srcCh;
       	cvtColor(src1,srcYCrCb,CV_BGR2YCrCb);
 	split(srcYCrCb,srcCh);   
 	srcYCrCb=srcCh[1];
 	tmpImg=srcYCrCb;
+	
+	imshow("lightMask",lightMask);
+	//cout<<srcYCrCb.type()<<" "<<lightMask.type()<<endl;
+	srcYCrCb=srcYCrCb&lightMask1;
+	
 	inRange(srcYCrCb,165,255,ycrcbBin);//imshow("ycrcbb",ycrcbBin);//136,225
 	dilate(ycrcbBin,ycrcbBin,getStructuringElement(0,Size(3,3)));
 	vector<ConnectObj> cO;
@@ -384,7 +407,7 @@ int carShellDetect(Mat src,Rect roi,Rect &shell,Rect &roi1,Point input,Point &ou
 		shell2=roi;
 		shell2.x=roi.x+dx;
 		shell2.y=roi.y+dy;
-		origin2.x=shell2.x+shell2.width/2;
+		origin2.x=shell2.x+shell2.width/2;	
 		origin2.y=shell2.y+shell2.height/2;
 		dis2=abs(origin2.x+origin2.y-origin.x-origin.y);
 		//cout<<center<<endl;
