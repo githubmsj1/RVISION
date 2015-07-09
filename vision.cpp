@@ -20,7 +20,7 @@ using namespace cv;
 #define BLUE 1
 
 #define NCOM "COM3"
-#define CAMNUM 1
+#define CAMNUM 2
 
 #define SCALE 2
 #define WIDTH 720
@@ -147,7 +147,7 @@ int main()
 			track.initObj(src,region);
 			if(onView==true)
 			{
-				if(carShellDetect(src1,region,region1,region2,objCenter,objCenter,lightMask)!=0)
+				if(carShellDetect(src1,region,region1,region2,oldObjCenter,objCenter,lightMask)!=0)
 				{
 					objCenter=Point(region.x+region.width/2,region.y+region.height/2);
 					
@@ -170,7 +170,8 @@ int main()
 				circle(src1,objCenter,4,Scalar(0,0,255),-1);
 			}
 		}
-		
+		 
+		oldObjCenter=objCenter;
 		if(PORT==ENABLE)
 		{
 			
@@ -278,17 +279,25 @@ int lightBarDetect(Mat src,Rect &roi,Mat& lightMask)
 {
 	static Rect oldRoi;
 
-	Mat srcHSV,hsvBin;
+	Mat srcHSV,hsvBin,hsvBinR,hsvBinR1,hsvBinR2,lightBar;
 	vector<Mat>srcCh;
 	cvtColor(src,srcHSV,CV_BGR2HSV);
 	//inRange(srcHSV,Scalar(65,170,150),Scalar(86,255,255),hsvBin);
-	inRange(srcHSV,Scalar(65,170,150),Scalar(210,255,255),hsvBin);
+	inRange(srcHSV,Scalar(220/2,255*0.5,255*0.7),Scalar(235/2,255*1,255*1),hsvBin);
+	inRange(srcHSV,Scalar(0/2,255*0.5,255*0.7),Scalar(10/2,255*1,255*1),hsvBinR1);
+	inRange(srcHSV,Scalar(335/2,255*0.5,255*0.7),Scalar(360/2,255*1,255*1),hsvBinR2);
+	inRange(srcHSV,Scalar(0/2,255*0,255*0.85),Scalar(360/2,255*0.2,255*1),lightBar);
+	dilate(lightBar,lightBar,getStructuringElement(0,Size(10,10)));
+	
+	hsvBin=(hsvBin|hsvBinR1|hsvBinR2)&lightBar;//&lightBar;
 	
 	dilate(hsvBin,hsvBin,getStructuringElement(0,Size(10,10)));
 	hsvBin.copyTo(lightMask);//copy the light bin to mask for shell detect
 	lightMask=~lightMask;
 
 	imshow("hsv",hsvBin);
+	imshow("lightBar",lightBar);
+
 	vector<ConnectObj> cO;
 	connectedComponents(hsvBin,cO);
 	if(cO.size()>0)
