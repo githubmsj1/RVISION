@@ -374,7 +374,7 @@ int carShellDetect(Mat src,Rect roi,Rect &shell,Rect &roi1,Point input,Point &ou
 	
 	
 
-	Mat src1(src,roii),srcYCrCb,ycrcbBin;
+	Mat src1(src,roii),srcYCrCb,ycrcbBin,ycrcbBin1;
 	Mat lightMask1(lightMask,roii);
 
 	Mat temp=Mat::zeros(src.size(),CV_8UC3);
@@ -388,14 +388,17 @@ int carShellDetect(Mat src,Rect roi,Rect &shell,Rect &roi1,Point input,Point &ou
 	
 	imshow("lightMask",lightMask);
 	//cout<<srcYCrCb.type()<<" "<<lightMask.type()<<endl;
-	srcYCrCb=srcYCrCb&lightMask1;
+
 	
 	inRange(srcYCrCb,165,255,ycrcbBin);//imshow("ycrcbb",ycrcbBin);//136,225
+	inRange(srcYCrCb,0,100,ycrcbBin1);
+	ycrcbBin=(ycrcbBin|ycrcbBin1)&lightMask1;
+
 	dilate(ycrcbBin,ycrcbBin,getStructuringElement(0,Size(3,3)));
 	vector<ConnectObj> cO;
 	connectedComponents(ycrcbBin,cO); //imshow("ycrcb",srcYCrCb);
 	
-	imshow("ycrcbbin",ycrcbBin);
+	//imshow("ycrcbbin1",ycrcbBin1);
 
 
 
