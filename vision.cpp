@@ -168,13 +168,14 @@ int main()
 			if(onView==true)
 			{
 				//cout<<"track"<<endl;
-				blind++;
 				if(blind==30)
 				{
 					objCenter.x=0;objCenter.y=0;	
 				}
 				else
 				{
+					
+					blind++;
 					track.track(src,region);
 					Point objCenterTrack=Point(region.x+region.width/2,region.y+region.height/2);
 					
