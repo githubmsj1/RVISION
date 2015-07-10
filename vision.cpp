@@ -141,8 +141,12 @@ int main()
 		Point objCenter=Point(region.x+region.width/2,region.y+region.height/2);
 		static Point oldObjCenter=objCenter;
 		
+
+		static int blind=0;
+		cout<<"blind="<<blind<<endl;
 		if(light==0)
 		{
+			blind=0;
 
 			track.initObj(src,region);
 			if(onView==true)
@@ -164,26 +168,33 @@ int main()
 			if(onView==true)
 			{
 				//cout<<"track"<<endl;
-				track.track(src,region);
-				Point objCenterTrack=Point(region.x+region.width/2,region.y+region.height/2);
-				
-				if(carShellDetect(src1,region,region1,region2,oldObjCenter,objCenter,lightMask)!=0)
+				blind++;
+				if(blind==30)
 				{
-					objCenter=Point(region.x+region.width/2,region.y+region.height/2);
+					objCenter.x=0;objCenter.y=0;	
+				}
+				else
+				{
+					track.track(src,region);
+					Point objCenterTrack=Point(region.x+region.width/2,region.y+region.height/2);
 					
-				}
+					if(carShellDetect(src1,region,region1,region2,oldObjCenter,objCenter,lightMask)!=0)
+					{
+						objCenter=Point(region.x+region.width/2,region.y+region.height/2);
+						
+					}
 
-				
-				int dif1=abs(objCenterTrack.x-oldObjCenter.x)+abs(objCenterTrack.y-oldObjCenter.y);
-				int dif2=abs(objCenter.x-oldObjCenter.x)+abs(objCenter.y-oldObjCenter.y);
-				if(dif1<dif2)
-				{
-					objCenter=objCenterTrack;
-				}
-				
-
-				rectangle(src1,region.tl(),region.br(),Scalar(255,0,0),2);
-				circle(src1,objCenter,4,Scalar(0,0,255),-1);
+					
+					int dif1=abs(objCenterTrack.x-oldObjCenter.x)+abs(objCenterTrack.y-oldObjCenter.y);
+					int dif2=abs(objCenter.x-oldObjCenter.x)+abs(objCenter.y-oldObjCenter.y);
+					if(dif1<dif2)
+					{
+						objCenter=objCenterTrack;
+					}
+					
+					}
+					rectangle(src1,region.tl(),region.br(),Scalar(255,0,0),2);
+					circle(src1,objCenter,4,Scalar(0,0,255),-1);
 			}
 		}
 		 
