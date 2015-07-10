@@ -20,7 +20,7 @@ using namespace cv;
 #define BLUE 1
 
 #define NCOM "COM3"
-#define CAMNUM 2
+#define CAMNUM 1
 
 #define SCALE 2
 #define WIDTH 720
@@ -306,7 +306,7 @@ int lightBarDetect(Mat src,Rect &roi,Mat& lightMask)
 
 		roi.width=MIN(cO[0].bound.width*4,src.cols);
 		roi.height=MIN(cO[0].bound.height*6,src.rows);
-		roi.y=cO[0].bound.y+5*cO[0].bound.width;
+		roi.y=cO[0].bound.y+cO[0].bound.height+5*cO[0].bound.width;
 		roi.x=cO[0].bound.x-(roi.width-cO[0].bound.width)/2;
 		roi.x=MAX(roi.x,0);
 		roi.y=MAX(roi.y,0);
