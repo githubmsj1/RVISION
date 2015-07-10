@@ -174,8 +174,8 @@ int main()
 				}
 
 				
-				int dif1=abs(objCenterTrack.x+objCenterTrack.y-oldObjCenter.x-oldObjCenter.y);
-				int dif2=abs(objCenter.x+objCenter.y-oldObjCenter.x-oldObjCenter.y);
+				int dif1=abs(objCenterTrack.x-oldObjCenter.x)+abs(objCenterTrack.y-oldObjCenter.y);
+				int dif2=abs(objCenter.x-oldObjCenter.x)+abs(objCenter.y-oldObjCenter.y);
 				if(dif1<dif2)
 				{
 					objCenter=objCenterTrack;
