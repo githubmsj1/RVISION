@@ -165,7 +165,23 @@ int main()
 			{
 				//cout<<"track"<<endl;
 				track.track(src,region);
-				objCenter=Point(region.x+region.width/2,region.y+region.height/2);
+				Point objCenterTrack=Point(region.x+region.width/2,region.y+region.height/2);
+				
+				if(carShellDetect(src1,region,region1,region2,oldObjCenter,objCenter,lightMask)!=0)
+				{
+					objCenter=Point(region.x+region.width/2,region.y+region.height/2);
+					
+				}
+
+				
+				int dif1=abs(objCenterTrack.x+objCenterTrack.y-oldObjCenter.x-oldObjCenter.y);
+				int dif2=abs(objCenter.x+objCenter.y-oldObjCenter.x-oldObjCenter.y);
+				if(dif1<dif2)
+				{
+					objCenter=objCenterTrack;
+				}
+				
+
 				rectangle(src1,region.tl(),region.br(),Scalar(255,0,0),2);
 				circle(src1,objCenter,4,Scalar(0,0,255),-1);
 			}
