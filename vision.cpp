@@ -20,7 +20,7 @@ using namespace cv;
 #define BLUE 1
 
 #define NCOM "COM3"
-#define CAMNUM 1
+#define CAMNUM 0
 
 #define SCALE 2
 #define WIDTH 720
