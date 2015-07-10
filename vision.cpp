@@ -47,7 +47,7 @@ const char* videoPath="p5.avi";
 
 Mat src,chel,tmpImg;
 int tmpVar=0,tmpVar1=0,tmpMin=0,tmpMax=0;
-int timeMs=0;
+double timeMs=0;
 int team;
 bool onView=false;
 int reduction=1;
@@ -198,6 +198,9 @@ int main()
 					circle(src1,objCenter,4,Scalar(0,0,255),-1);
 			}
 		}
+
+		timeMs=(getTickCount()-timeMs)/getTickFrequency();///1000;
+		cout<<timeMs*1000<<" ms"<<endl;
 		 
 		oldObjCenter=objCenter;
 		cout<<objCenter<<endl;
@@ -312,10 +315,10 @@ int lightBarDetect(Mat src,Rect &roi,Mat& lightMask)
 	vector<Mat>srcCh;
 	cvtColor(src,srcHSV,CV_BGR2HSV);
 	//inRange(srcHSV,Scalar(65,170,150),Scalar(86,255,255),hsvBin);
-	inRange(srcHSV,Scalar(220/2,255*0.5,255*0.7),Scalar(235/2,255*1,255*1),hsvBin);
-	inRange(srcHSV,Scalar(0/2,255*0.5,255*0.7),Scalar(10/2,255*1,255*1),hsvBinR1);
-	inRange(srcHSV,Scalar(335/2,255*0.5,255*0.7),Scalar(360/2,255*1,255*1),hsvBinR2);
-	inRange(srcHSV,Scalar(0/2,255*0,255*0.85),Scalar(360/2,255*0.2,255*1),lightBar);
+	inRange(srcHSV,Scalar(175/2,255*0.4,255*0.7),Scalar(230/2,255*1,255*1),hsvBin);
+	inRange(srcHSV,Scalar(0/2,255*0.4,255*0.7),Scalar(43/2,255*1,255*1),hsvBinR1);
+	//inRange(srcHSV,Scalar(335/2,255*0.4,255*0.7),Scalar(360/2,255*1,255*1),hsvBinR2);
+	inRange(srcHSV,Scalar(0/2,255*0,255*0.85),Scalar(360/2,255*0.7,255*1),lightBar);
 	dilate(lightBar,lightBar,getStructuringElement(0,Size(10,10)));
 	
 	hsvBin=(hsvBin|hsvBinR1|hsvBinR2)&lightBar;//&lightBar;
