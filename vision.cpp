@@ -199,6 +199,7 @@ int main()
 		}
 		 
 		oldObjCenter=objCenter;
+		cout<<objCenter<<endl;
 		if(PORT==ENABLE)
 		{
 			
