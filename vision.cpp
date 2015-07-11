@@ -2,6 +2,7 @@
 #include"opencv2/opencv.hpp"
 #include"vision.h"
 #include"serial.h"
+#include<queue>
 
 using namespace std;
 using namespace cv;
@@ -65,8 +66,8 @@ int combineCon(Mat src,Mat &dst,vector<ConnectObj> cO);
 int lightBarDetect(Mat src,Rect &roi,Mat& lightMask);
 int carShellDetect(Mat src,Rect roi,Rect &shell,Rect &roi1,Point input,Point &output,Mat lightMask);
 int filter(vector<Point>& objs,Point input,Point& output);
-
-
+int showScope(int input);
+int upsidedown(Mat& src);
 int main()
 {
 	
@@ -116,6 +117,7 @@ int main()
 		if(IMG_SOURCE==CAMERA||IMG_SOURCE==VIDEO)
 		{
 			cap>>src;
+			flip(src,src,-1);
 		}
 		else if(IMG_SOURCE==PICTURE)
 		{
@@ -135,6 +137,7 @@ int main()
 		
 		src.copyTo(src1);
 		
+		
 		Mat lightMask;
 		int light=lightBarDetect(src,region,lightMask);
 		
@@ -147,7 +150,7 @@ int main()
 		if(light==0)
 		{
 			blind=0;
-
+			
 			track.initObj(src,region);
 			if(onView==true)
 			{
@@ -158,9 +161,9 @@ int main()
 				}
 				
 				filter(objs,objCenter,objCenter);
-				rectangle(src1,region1.tl(),region1.br(),Scalar(0,255,0),1);
-				rectangle(src1,region.tl(),region.br(),Scalar(0,0,255),1);
-				circle(src1,objCenter,4,Scalar(0,0,255),-1);
+				rectangle(src1,region1.tl(),region1.br(),Scalar(0,255,255),4);
+				rectangle(src1,region.tl(),region.br(),Scalar(0,0,255),5);
+				circle(src1,objCenter,8,Scalar(0,255,255),-1);
 			}
 		}
 		else
@@ -204,6 +207,7 @@ int main()
 		 
 		oldObjCenter=objCenter;
 		cout<<objCenter<<endl;
+		showScope(objCenter.x/reduction);
 		if(PORT==ENABLE)
 		{
 			
@@ -247,7 +251,33 @@ int main()
 	return 0;
 }
 
+int upsidedown(Mat& src)
+{
 
+	return 0;
+}
+
+int showScope(int input)
+{
+	static deque<int> points(500,0);
+	points.push_back(input);
+	points.pop_front();
+	
+	Mat graph=Mat::zeros(160,500,CV_8UC1);
+	
+	cout<<graph.rows<<endl;
+	cout<<input<<endl;
+	for(int i=0;i<points.size();i++)
+	{
+		
+		graph.at<uchar>(points[i],i)=255;
+		//cout<<160-(int)points[i]<<"   "<<i<<endl;
+	}
+	
+	imshow("scope111",graph);//,Mat::zeros(160,500,CV_8UC1));
+	
+	//cout<<"fuck"<<endl;
+}
 void regulate(int,void*)
 {
 	Mat tmpImg1;
@@ -270,8 +300,8 @@ void regulate(int,void*)
 	
 	//Canny(tmpImg,tmpImg1,tmpMin,tmpMax,3);
 	inRange(tmpImg,tmpMax,255,tmpImg1);
-	imshow("thresh",Mat::zeros(400,400,CV_8UC1));
-	imshow("output",tmpImg1);
+	//imshow("thresh",Mat::zeros(400,400,CV_8UC1));
+	//imshow("output",tmpImg1);
 
 }
 
@@ -310,6 +340,7 @@ int filter(vector<Point>& objs,Point input,Point& output)
 int lightBarDetect(Mat src,Rect &roi,Mat& lightMask)
 {
 	static Rect oldRoi;
+	static Rect lightRoi;
 
 	Mat srcHSV,hsvBin,hsvBinR,hsvBinR1,hsvBinR2,lightBar;
 	vector<Mat>srcCh;
@@ -334,22 +365,44 @@ int lightBarDetect(Mat src,Rect &roi,Mat& lightMask)
 	connectedComponents(hsvBin,cO);
 	if(cO.size()>0)
 	{	
+		if(cO.size()>1)
+		{	
+			int min=abs(cO[0].bound.x-lightRoi.x)+abs(cO[0].bound.y-lightRoi.y);
+			for (int i=1;i<cO.size();i++)
+			{  
+				if(abs(cO[i].bound.x-lightRoi.x)+abs(cO[i].bound.y-lightRoi.y)<min)
+				{
+					swap(cO[i],cO[0]);		
+				}
+			}
+		}
 		onView=true;
-
+		Point oldbr;
 		roi.width=MIN(cO[0].bound.width*4,src.cols);
-		roi.height=MIN(cO[0].bound.height*6,src.rows);
-		roi.y=cO[0].bound.y+cO[0].bound.height+4*cO[0].bound.width;
+		roi.height=MIN(cO[0].bound.width*6,src.rows);
+		roi.y=cO[0].bound.y+0.7*cO[0].bound.height;//+4*cO[0].qbound.width;
 		roi.x=cO[0].bound.x-(roi.width-cO[0].bound.width)/2;
-		roi.x=MAX(roi.x,0);
-		roi.y=MAX(roi.y,0);
-		if(src.cols-roi.x<roi.width)
+		oldbr.x=roi.x+roi.width;
+		oldbr.y=roi.y+roi.height;
+		
+		oldbr.x=MAX(MIN(oldbr.x,src.cols-1),0);
+		oldbr.y=MAX(MIN(oldbr.y,src.rows-1),0);
+		roi.x=MIN(MAX(roi.x,0),src.cols-1);
+		roi.y=MIN(MAX(roi.y,0),src.rows-1);
+		
+		roi.width=MAX(oldbr.x-roi.x,1);
+		roi.height=MAX(oldbr.y-roi.y,1);
+		
+		//cout<<roi<<endl;
+		/*if(src.cols-roi.x<roi.width)
 		{
 			roi.x=src.cols-roi.width;
 		}
 		if(src.rows-roi.y<roi.height)
 		{
 			roi.y=src.rows-roi.height;
-		}
+		}*/
+
 		//int oldWidth=roi.width;
 		//roi=cO[0].bound;
 		//roi.y=roi.y+roi.width/2;
@@ -360,11 +413,13 @@ int lightBarDetect(Mat src,Rect &roi,Mat& lightMask)
 		//roi.x=MIN(MAX(roi.x,0),src.rows-1);
 		//roi.y=MIN(MAX(roi.y,0),src.cols-1);
 		oldRoi=roi;
-		
+		lightRoi=cO[0].bound;
 		
 		//cout<<src.size()<<roi<<endl;
 		Mat tmp(src,roi);
 		imshow("lightbarregion",tmp);
+		//rectangle(src,roi.tl(),roi.br(),Scalar(0,255,255),5);
+		//imshow("carregion",src);
 		
 		return 0;
 	}
@@ -434,9 +489,9 @@ int carShellDetect(Mat src,Rect roi,Rect &shell,Rect &roi1,Point input,Point &ou
 
 	dilate(ycrcbBin,ycrcbBin,getStructuringElement(0,Size(3,3)));
 	vector<ConnectObj> cO;
-	connectedComponents(ycrcbBin,cO); //imshow("ycrcb",srcYCrCb);
+	connectedComponents(ycrcbBin,cO); imshow("ycrcb",srcYCrCb);
 	
-	//imshow("ycrcbbin1",ycrcbBin1);
+	imshow("ycrcbbin",ycrcbBin);
 
 
 
@@ -459,10 +514,11 @@ int carShellDetect(Mat src,Rect roi,Rect &shell,Rect &roi1,Point input,Point &ou
 		shell2.y=roi.y+dy;
 		origin2.x=shell2.x+shell2.width/2;	
 		origin2.y=shell2.y+shell2.height/2;
-		dis2=abs(origin2.x+origin2.y-origin.x-origin.y);
+		dis2=abs(origin2.x-origin.x)+abs(origin2.y-origin.y);
 		//cout<<center<<endl;
 		grayDetect=true;
 	}
+	cout<<"cOsize "<<cO.size()<<endl;
 	if(cO.size()>0)//cO.size()>0)
 	{
 		
@@ -496,7 +552,7 @@ int carShellDetect(Mat src,Rect roi,Rect &shell,Rect &roi1,Point input,Point &ou
 		shell1.y=shell1.y+roi.y;
 		origin1.x=shell1.x+shell1.width/2;
 		origin1.y=shell1.y+shell1.height/2;
-		dis1=abs(origin1.x+origin1.y-origin.x-origin.y);
+		dis1=abs(origin1.x-origin.x)+abs(origin1.y-origin.y);
 		
 			
 
@@ -558,7 +614,7 @@ int carShellDetect(Mat src,Rect roi,Rect &shell,Rect &roi1,Point input,Point &ou
 		
 		
 		
-		imshow("temp",temp);
+		//imshow("temp",temp);
 		return 0;
 	
 }
