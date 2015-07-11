@@ -293,7 +293,7 @@ int filter(vector<Point>& objs,Point input,Point& output)
 		//{
 		//	objs.erase(objs.begin());
 		//}
-		output=objs.back()*0.8+input*0.2;
+		output=objs.back()*0.3+input*0.7;
 		objs.push_back(output);
 		objs.erase(objs.begin());
 	}
@@ -338,7 +338,7 @@ int lightBarDetect(Mat src,Rect &roi,Mat& lightMask)
 
 		roi.width=MIN(cO[0].bound.width*4,src.cols);
 		roi.height=MIN(cO[0].bound.height*6,src.rows);
-		roi.y=cO[0].bound.y+cO[0].bound.height+3*cO[0].bound.width;
+		roi.y=cO[0].bound.y+cO[0].bound.height+4*cO[0].bound.width;
 		roi.x=cO[0].bound.x-(roi.width-cO[0].bound.width)/2;
 		roi.x=MAX(roi.x,0);
 		roi.y=MAX(roi.y,0);
