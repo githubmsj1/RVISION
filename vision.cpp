@@ -380,6 +380,12 @@ int lightBarDetect(Mat src,Rect &roi,Mat& lightMask)
 
 
 //origin:last point
+//roi:search area shell
+//shell:output area
+//roi1:no used
+//input:last object point
+//output:object point
+//light:area where there is lightbar area
 int carShellDetect(Mat src,Rect roi,Rect &shell,Rect &roi1,Point input,Point &output,Mat lightMask)
 {
 	//2:gray 1:crcb
