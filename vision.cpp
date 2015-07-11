@@ -552,7 +552,7 @@ int carShellDetect(Mat src,Rect roi,Rect &shell,Rect &roi1,Point input,Point &ou
 		shell1.y=shell1.y+roi.y;
 		origin1.x=shell1.x+shell1.width/2;
 		origin1.y=shell1.y+shell1.height/2;
-		dis1=abs(origin1.x-origin.x)+abs(origin1.y-origin.y);
+		dis1=abs(origin1.x-origin.x)+abs(origin1.y-origin.y):
 		
 			
 
